@@ -1,0 +1,35 @@
+{
+  "name": "elektro-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx ts-node-dev --transpile-only --no-notify server.ts"
+  },
+  "prisma": {
+  "schema": "src/models/schema.prisma"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isaac1406/elektro-backend-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/isaac1406/elektro-backend-api/issues"
+  },
+  "homepage": "https://github.com/isaac1406/elektro-backend-api#readme",
+  "devDependencies": {
+    "@prisma/client": "^6.12.0",
+    "@types/express": "^5.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "prisma": "^6.12.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
