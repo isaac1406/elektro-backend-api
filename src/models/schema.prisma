@@ -13,3 +13,30 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Usuario {
+  id              String    @id @default(uuid())
+  nome            String
+  email           String    @unique
+  senhaHash       String
+  telefone        String?
+  endereco        String
+  dataCadastro    DateTime  @default(now())
+  dataAtualizacao DateTime  @updatedAt
+  // relacionamento: 1 usuario pode ter N anuncios
+  anuncios        Anuncio[]
+}
+
+model Anuncio {
+  id              String   @id @default(uuid())
+  titulo          String
+  descricao       String?
+  preco           Float
+  statusAnuncio   String
+  urlImagem       String?
+  dataCadastro    DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+  // relacionamento: 1 anuncio pertence a 1 usuario
+  vendedorId      String
+  vendedor        Usuario  @relation(fields: [vendedorId], references: [id])
+}
