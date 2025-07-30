@@ -1,21 +1,29 @@
 import { Prisma, PrismaClient } from "../generated/prisma";
 import { Request, Response } from "express";
+import { ZodError } from "zod";
+import bcrypt from "bcryptjs"; 
+import { createUserSchema, updateUserSchema, userParamsSchema, loginSchema } from "../schemas/UserSchema";
 
 const prisma = new PrismaClient();
 
 export class UserController {
     public static async createUser(request: Request, response: Response) {
         try{
-            const { nome, email, senha, telefone, endereco } = request.body;
+            // validar senha
+            const validatedData = createUserSchema.parse(request.body);
+
+            // Hash da senha
+            const hashedPassword = await bcrypt.hash(validatedData.senha, 10);
 
             // cria o usuário no db com o prisma
             const createInput: Prisma.UsuarioCreateInput = {
-                nome: nome,
-                email: email,
-                senhaHash: senha,
-                telefone: telefone,
-                endereco: endereco,
-            };
+                nome: validatedData.nome,
+                email: validatedData.email,
+                senhaHash: hashedPassword,
+                dataCadastro: new Date(),
+                telefone: validatedData.telefone,
+                endereco: validatedData.endereco,
+              };
 
             const createdUser = await prisma.usuario.create({
 				data: createInput,
@@ -28,52 +36,67 @@ export class UserController {
                     telefone: true,
                     endereco: true,
                     dataCadastro: true,
-                    dataAtualizacao: true,
                 },
 
 			});
 
             response.status(201).json(createdUser);
         } catch (error: any) {
-			response.status(500).json({ message: error.message });
+            if (error instanceof ZodError) {
+                return response
+                  .status(400)
+                  .json({ message: "Dados de entrada inválidos." });
+              }
+              
+              response.status(500).json({ message: error.message || "Erro interno do servidor." });
 		}
     }
 
     public static async readUser(request: Request, response: Response) {
         try {
-            const { userId } = request.params; // Assumindo que o parâmetro na rota é 'userId'
-
+            // Validação ID
+            const { userId } = userParamsSchema.parse(request.params);
+        
             // Busca o usuário pelo ID
-            const foundUsuario = await prisma.usuario.findUnique({ 
+            const foundUsuario = await prisma.usuario.findUnique({
                 where: {
-                    id: userId,
+                id: userId,
                 },
-                // Seleciona quais campos serão retornados paa não expor a senha_hash
+                // Seleciona quais campos serão retornados para não expor a senha_hash
                 select: {
+                id: true,
+                nome: true,
+                email: true,
+                telefone: true,
+                endereco: true,
+                dataCadastro: true,
+                // Incluir os anúncios que este usuário publicou
+                produtos: {
+                    // Selecionar apenas os campos mais importantes do anuncio
+                    select: {
                     id: true,
-                    nome: true,
-                    email: true,
-                    telefone: true,
-                    endereco: true,
-                    dataCadastro: true,
-                    dataAtualizacao: true,
-                    // Incluir os anúncios que este usuário publicou
-                    anuncios: {
-                        // Selecionar apenas os campos mais importantes do anuncio
-                        select: {
-                            id: true,
-                            titulo: true,
-                            preco: true,
-                            urlImagem: true,
-                        }
-                    }
-                }
+                    titulo: true,
+                    preco: true,
+                    urlImagem: true,
+                    },
+                },
+                },
             });
+        
+            if (!foundUsuario) {
+                return response.status(404).json({ message: "Usuário não encontrado." });
+            }
+        
             response.status(200).json(foundUsuario);
+            } catch (error: any) {
+            if (error instanceof ZodError) {
+                return response
+                .status(400)
+                .json({ message: "Parâmetros inválidos."});
+            }
 
-        } catch (error: any) {
-			response.status(500).json({ message: error.message });
-		}
+            response.status(500).json({ message: error.message || "Erro interno do servidor." });
+        }
     }
 
     public static async readAllUsers(request: Request, response: Response) {
@@ -86,7 +109,6 @@ export class UserController {
                     telefone: true,
                     endereco: true,
                     dataCadastro: true,
-                    dataAtualizacao: true,
                 }
             });
 
@@ -98,127 +120,120 @@ export class UserController {
     }
 
     public static async updateUser(request: Request, response: Response) {
-		try {
-			const { userId } = request.params;
-			const { nome, email, senhaHash, telefone, endereco } = request.body;
-
-			const createInput: Prisma.UsuarioUpdateInput = {
-				nome: nome,
-				email: email,
-                senhaHash: senhaHash,
-                telefone: telefone,
-                endereco: endereco
-			};
-
-			const updatedUser = await prisma.usuario.update({
-				data: createInput,
-				where: {
-					id: userId,
-				},
-                // Seleciona quais campos retornar para evitar expor a senha_hash
-                select: {
-                    id: true,
-                    nome: true,
-                    email: true,
-                    telefone: true,
-                    endereco: true,
-                    dataCadastro: true,
-                    dataAtualizacao: true,
-                },
-			});
-
-			response.status(200).json(updatedUser);
-		} catch (error: any) {
-			response.status(500).json({ message: error.message });
-		}
-	}
-    public static async upsertUser(request: Request, response: Response) {
-		try {
-			const { userId } = request.params;
-			const { nome, email, senhaHash, telefone, endereco } = request.body;
-
-			const createInput: Prisma.UsuarioCreateInput = {
-				nome: nome,
-				email: email,
-                senhaHash: senhaHash,
-                telefone: telefone,
-                endereco: endereco
-			};
-
-            const updateInput: Prisma.UsuarioUpdateInput = {
-				nome: nome,
-				email: email,
-                senhaHash: senhaHash,
-                telefone: telefone,
-                endereco: endereco
-			};
-
-			const upsertedUser = await prisma.usuario.upsert({
-				create: createInput,
-                update: updateInput,
-				where: {
-					id: userId,
-				},
-                // Seleciona quais campos retornar para evitar expor a senha_hash
-                select: {
-                    id: true,
-                    nome: true,
-                    email: true,
-                    telefone: true,
-                    endereco: true,
-                    dataCadastro: true,
-                    dataAtualizacao: true,
-                },
-			});
-
-			response.status(200).json(upsertedUser);
-		} catch (error: any) {
-			response.status(500).json({ message: error.message });
-		}
-	}
-
-    public static async deleteUser(request: Request, response: Response) {
-		try {
-			const { userId } = request.params;
-
-			const deletedUser = await prisma.usuario.delete({
-				where: {
-					id: userId,
-				},
-			});
-
-			response.status(200).json(deletedUser);
-		} catch (error: any) {
-			response.status(500).json({ message: error.message });
-		}
-	}
-
-    public static async deleteAllUsers(request: Request, response: Response) {
-		try {
-			const deletedUser = await prisma.usuario.deleteMany();
-
-			response.status(200).json(deletedUser);
-		} catch (error: any) {
-			response.status(500).json({ message: error.message });
-		}
-	}
-
-    public static async login(request: Request, response: Response) {
-        const { email, senha } = request.body;
-
         try {
-            // Buscar o usuário pelo email
-            const usuario = await prisma.usuario.findUnique({ 
-                where: { 
-                    email: email,
-                 }, 
+            // Validação ID
+            const { userId } = userParamsSchema.parse(request.params);
+    
+            // Validação dos dados de entrada
+            const validatedData = updateUserSchema.parse(request.body);
+            
+            // Verifica se o usuário existe 
+            const existingUser = await prisma.usuario.findUnique({
+                where: { id: userId },
+                select: { id: true },
             });
-
-            if (!usuario) {
-                return response.status(401).json({ message: 'Credenciais inválidas.' });
+        
+            if (!existingUser) {
+                return response.status(404).json({ message: "Usuário não encontrado para atualização." });
+            }
+        
+            const updateInput: Prisma.UsuarioUpdateInput = {
+                nome: validatedData.nome,
+                email: validatedData.email,
+                telefone: validatedData.telefone,
+                endereco: validatedData.endereco,
+            };
+        
+            // Se uma nova senha for fornecida, fazer o hash e adicionar ao updateInput
+            if (validatedData.senha) {
+                updateInput.senhaHash = await bcrypt.hash(validatedData.senha, 10);
+            }
+        
+            const updatedUser = await prisma.usuario.update({
+                data: updateInput,
+                where: {
+                id: userId,
+                },
+                // Seleciona quais campos retornar para evitar expor a senha_hash
+                select: {
+                id: true,
+                nome: true,
+                email: true,
+                telefone: true,
+                endereco: true,
+                dataCadastro: true,
+                },
+            });
+        
+            response.status(200).json(updatedUser);
+            } catch (error: any) {
+            if (error instanceof ZodError) {
+                return response
+                .status(400)
+                .json({ message: "Dados de entrada inválidos." });
             }
 
-            // Login bem-sucedido: Retornar dados do usuário, excluindo a senha
+            response.status(500).json({ message: error.message || "Erro interno do servidor." });
+        }
+    }    
+    
+    public static async deleteUser(request: Request, response: Response) {
+        try {
+            // Validação ID
+            const { userId } = userParamsSchema.parse(request.params);
+        
+            // Verifica se o usuário existe 
+            const existingUser = await prisma.usuario.findUnique({
+                where: { id: userId },
+                select: { id: true },
+            });
+        
+            if (!existingUser) {
+                return response.status(404).json({ message: "Usuário não encontrado para exclusão." });
+            }
+        
+            const deletedUser = await prisma.usuario.delete({
+                where: {
+                id: userId,
+                },
+            });
+        
+            response.status(200).json({ message: "Usuário deletado com sucesso.", deletedUser });
+            } catch (error: any) {
+            if (error instanceof ZodError) {
+                return response
+                .status(400)
+                .json({ message: "Parâmetros inválidos." });
+            }
+
+            response.status(500).json({ message: error.message || "Erro interno do servidor." });
+        }
+    }
+
+    public static async login(request: Request, response: Response) {
+        try {
+            // Validação dos dados de entrada
+            const { email, senha } = loginSchema.parse(request.body);
+        
+            // Buscar o usuário pelo email
+            const usuario = await prisma.usuario.findUnique({
+                where: {
+                email: email,
+                },
+            });
+        
+            if (!usuario) {
+                return response.status(401).json({ message: "Credenciais inválidas (e-mail ou senha)." });
+            }
+        
+            // Comparar a senha fornecida com a senha hashed no banco de dados
+            const isPasswordValid = await bcrypt.compare(senha, usuario.senhaHash);
+        
+            if (!isPasswordValid) {
+                return response.status(401).json({ message: "Credenciais inválidas (e-mail ou senha)." });
+            }
+        
+            // Login bem-sucedido: Retornar dados do usuário, excluindo a senhaHash
             const usuarioResponse = {
                 id: usuario.id,
                 nome: usuario.nome,
@@ -226,11 +241,15 @@ export class UserController {
                 telefone: usuario.telefone,
                 endereco: usuario.endereco,
                 dataCadastro: usuario.dataCadastro,
-                dataAtualizacao: usuario.dataAtualizacao,
             };
-
-            return response.status(200).json({ message: 'Login bem-sucedido!', usuario: usuarioResponse });
-        } catch (error: any) {
+        
+            return response.status(200).json({ message: "Login bem-sucedido!", usuario: usuarioResponse });
+            } catch (error: any) {
+            if (error instanceof ZodError) {
+                return response
+                .status(400)
+                .json({ message: "Dados de entrada inválidos." });
+            }
             response.status(500).json({ message: "Erro interno do servidor durante o login.", error: error.message });
         }
     }

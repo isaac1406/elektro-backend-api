@@ -1,21 +1,22 @@
 {
   "name": "elektro-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "Projeto backend tt EJCM",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx ts-node-dev --transpile-only --no-notify server.ts"
   },
   "prisma": {
-  "schema": "src/models/schema.prisma"
+  "schema": "src/models/schema.prisma",
+  "seed": "ts-node src/models/seed/seeder.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/isaac1406/elektro-backend-api.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Isaac Maiolino Vianna",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
@@ -32,4 +33,4 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
-}
+} 

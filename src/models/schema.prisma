@@ -22,21 +22,19 @@ model Usuario {
   telefone        String?
   endereco        String
   dataCadastro    DateTime  @default(now())
-  dataAtualizacao DateTime  @updatedAt
-  // relacionamento: 1 usuario pode ter N anuncios
-  anuncios        Anuncio[]
+  produtos        Produto[]
 }
 
-model Anuncio {
+model Produto {
   id              String   @id @default(uuid())
   titulo          String
   descricao       String?
   preco           Float
-  statusAnuncio   String
+  categoria       String
   urlImagem       String?
-  dataCadastro    DateTime @default(now())
-  dataAtualizacao DateTime @updatedAt
-  // relacionamento: 1 anuncio pertence a 1 usuario
+  dataPublicacao  DateTime @default(now())
   vendedorId      String
   vendedor        Usuario  @relation(fields: [vendedorId], references: [id])
+
+  @@index([vendedorId])
 }
