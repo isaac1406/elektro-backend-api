@@ -1,22 +1,31 @@
 import { Router } from "express";
 import { UserController } from "../controllers/UserController";
 import { ProdutoController } from "../controllers/ProdutoController";
+import authenticate from "../middlewares/authentication";
+import { photoUpload } from "../config/uploader";
 
 const router = Router(); 
 
 // Rotas de Usuário
+
+//Rotas Públicas
 router.post('/user', UserController.createUser);
-router.post('/user/login', UserController.login);    
-router.get('/user', UserController.readAllUsers);
-router.get('/user/:userId', UserController.readUser);
-router.put('/user/:userId', UserController.updateUser);
-router.delete('/user/:userId', UserController.deleteUser);
+router.post('/user/login', UserController.login);
+
+// Rotas Protegidas
+router.get('/user', authenticate, UserController.readAllUsers);
+router.get('/user/:userId', authenticate, UserController.readUser);
+router.put('/user/:userId', authenticate, UserController.updateUser);
+router.delete('/user/:userId', authenticate, UserController.deleteUser);
 
 // Rotas de Produto
-router.post('/produto', ProdutoController.createProduto);
+// Rotas Públicas
 router.get('/produto', ProdutoController.readAllProdutos);
 router.get('/produto/:produtoId', ProdutoController.readProduto);
-router.put('/produto/:produtoId', ProdutoController.updateProduto);
-router.delete('/produto/:produtoId', ProdutoController.deleteProduto);
+
+// Rotas Protegidas
+router.post('/produto', authenticate, photoUpload.single('imagemProduto'), ProdutoController.createProduto);
+router.put('/produto/:produtoId', authenticate, photoUpload.single('imagemProduto'), ProdutoController.updateProduto);
+router.delete('/produto/:produtoId', authenticate, ProdutoController.deleteProduto);
 
 export default router;

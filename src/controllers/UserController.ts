@@ -3,8 +3,35 @@ import { Request, Response } from "express";
 import { ZodError } from "zod";
 import bcrypt from "bcryptjs"; 
 import { createUserSchema, updateUserSchema, userParamsSchema, loginSchema } from "../schemas/UserSchema";
+import nodemailer from 'nodemailer';
+import auth from "../config/auth";
 
 const prisma = new PrismaClient();
+
+const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST,
+    port: process.env.MAIL_PORT, 
+    auth: {
+        user: process.env.MAIL_SENDER,
+        pass: process.env.PASSWORD,
+    },
+});
+
+async function sendConfirmationEmail(userEmail: string, userName: string) {
+    const mailOptions = {
+        from: process.env.MAIL_SENDER, // Remetente (pode ser qualquer e-mail no sandbox)
+        to: userEmail, // Destinatário (o e-mail do usuário recém-cadastrado)
+        subject: `Confirmação do Cadastro de ${userEmail}!`, // Assunto do e-mail
+        message: `Seja Bem Vindo ${userName}` 
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`E-mail de confirmação enviado para ${userEmail}`);
+    } catch (error) {
+        console.error(`Erro ao enviar e-mail de confirmação para ${userEmail}:`, error);
+    }
+}
 
 export class UserController {
     public static async createUser(request: Request, response: Response) {
@@ -39,6 +66,8 @@ export class UserController {
                 },
 
 			});
+
+            await sendConfirmationEmail(createdUser.email, createdUser.nome);
 
             response.status(201).json(createdUser);
         } catch (error: any) {
@@ -232,6 +261,9 @@ export class UserController {
             if (!isPasswordValid) {
                 return response.status(401).json({ message: "Credenciais inválidas (e-mail ou senha)." });
             }
+            
+            // Gerar token
+            const token = auth.generateJWT(usuario);
         
             // Login bem-sucedido: Retornar dados do usuário, excluindo a senhaHash
             const usuarioResponse = {
@@ -243,7 +275,7 @@ export class UserController {
                 dataCadastro: usuario.dataCadastro,
             };
         
-            return response.status(200).json({ message: "Login bem-sucedido!", usuario: usuarioResponse });
+            return response.status(200).json({ message: "Login bem-sucedido!", usuario: usuarioResponse, token });
             } catch (error: any) {
             if (error instanceof ZodError) {
                 return response
