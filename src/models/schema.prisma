@@ -23,6 +23,7 @@ model Usuario {
   endereco        String
   dataCadastro    DateTime  @default(now())
   produtos        Produto[]
+  ofertas         Oferta[]
 }
 
 model Produto {
@@ -35,6 +36,16 @@ model Produto {
   dataPublicacao  DateTime @default(now())
   vendedorId      String
   vendedor        Usuario  @relation(fields: [vendedorId], references: [id])
-
   @@index([vendedorId])
+  ofertas         Oferta[]
+}
+
+model Oferta {
+  id              String   @id @default(uuid())
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId       String
+  produto         Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produtoId       String
+  dataOferta      DateTime @default(now())
+  @@unique([usuarioId, produtoId])
 }

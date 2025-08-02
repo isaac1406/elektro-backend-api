@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { UserController } from "../controllers/UserController";
 import { ProdutoController } from "../controllers/ProdutoController";
+import { OfertaController } from "../controllers/OfertaController";
 import authenticate from "../middlewares/authentication";
 import { photoUpload } from "../config/uploader";
 
@@ -27,5 +28,15 @@ router.get('/produto/:produtoId', ProdutoController.readProduto);
 router.post('/produto', authenticate, photoUpload.single('imagemProduto'), ProdutoController.createProduto);
 router.put('/produto/:produtoId', authenticate, photoUpload.single('imagemProduto'), ProdutoController.updateProduto);
 router.delete('/produto/:produtoId', authenticate, ProdutoController.deleteProduto);
+
+// 1. Criar uma nova oferta (registrar interesse)
+// Requisito: "Inserir a relação de uma instância específica de um objeto com uma instância específica de outro objeto."
+// POST /ofertas
+router.post('/ofertas', authenticate, new OfertaController().createOferta);
+
+// 2. Deletar uma oferta (retirar o registro de interesse)
+// Requisito: "Remover a relação de uma instância específica."
+// DELETE /ofertas/:ofertaId
+router.delete('/ofertas/:ofertaId', authenticate, new OfertaController().deleteOferta);
 
 export default router;

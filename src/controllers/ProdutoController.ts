@@ -3,7 +3,6 @@ import { Request, Response } from "express";
 import { ZodError } from "zod";
 import { CreateProdutoSchema, UpdateProdutoSchema, ProdutoParamsSchema, VendedorParamsSchema } from "../schemas/ProdutoSchema";
 import path from "path";
-import fs from "fs"; 
 
 const prisma = new PrismaClient();
 

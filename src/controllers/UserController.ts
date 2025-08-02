@@ -19,9 +19,9 @@ const transporter = nodemailer.createTransport({
 
 async function sendConfirmationEmail(userEmail: string, userName: string) {
     const mailOptions = {
-        from: process.env.MAIL_SENDER, // Remetente (pode ser qualquer e-mail no sandbox)
-        to: userEmail, // Destinatário (o e-mail do usuário recém-cadastrado)
-        subject: `Confirmação do Cadastro de ${userEmail}!`, // Assunto do e-mail
+        from: process.env.MAIL_SENDER, 
+        to: userEmail,
+        subject: `Confirmação do Cadastro de ${userEmail}!`, 
         message: `Seja Bem Vindo ${userName}` 
     };
 
@@ -36,7 +36,7 @@ async function sendConfirmationEmail(userEmail: string, userName: string) {
 export class UserController {
     public static async createUser(request: Request, response: Response) {
         try{
-            // validar senha
+            // validar dados
             const validatedData = createUserSchema.parse(request.body);
 
             // Hash da senha
